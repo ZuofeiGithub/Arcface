@@ -20,6 +20,8 @@ import com.arcsoft.arcfacedemo.api.FaceApi;
 import com.arcsoft.arcfacedemo.common.Constants;
 import com.arcsoft.arcfacedemo.fragment.AdvFragment;
 import com.arcsoft.arcfacedemo.fragment.BkFragment;
+import com.arcsoft.arcfacedemo.fragment.LabelViewFragment;
+import com.arcsoft.arcfacedemo.fragment.UserPhotoFragment;
 import com.arcsoft.arcfacedemo.model.DrawInfo;
 import com.arcsoft.arcfacedemo.util.ConfigUtil;
 import com.arcsoft.arcfacedemo.util.DrawHelper;
@@ -44,6 +46,8 @@ import com.github.library.bubbleview.BubbleTextVew;
 import com.uuch.adlibrary.AdManager;
 import com.uuch.adlibrary.bean.AdInfo;
 import com.uuch.adlibrary.transformer.DepthPageTransformer;
+
+import org.greenrobot.eventbus.EventBus;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -71,6 +75,7 @@ public class PreviewActivity extends SupportActivity implements ViewTreeObserver
     private FaceEngine faceEngine;
     private int afCode = -1;
     private int processMask = FaceEngine.ASF_AGE | FaceEngine.ASF_FACE3DANGLE | FaceEngine.ASF_GENDER | FaceEngine.ASF_LIVENESS;
+
     /**
      * 相机预览显示的控件，可为SurfaceView或TextureView
      */
@@ -93,6 +98,24 @@ public class PreviewActivity extends SupportActivity implements ViewTreeObserver
 
     private CircleImageView circleView;
     private boolean noface = true;
+    private boolean b_autofocus = false;
+
+    UserPhotoFragment userPhotoFragment;
+
+    LabelViewFragment labelViewFragment;
+
+    AdvFragment advFragment;
+
+    private Camera.AutoFocusCallback myAutoFocusCallback = new Camera.AutoFocusCallback() {
+        @Override
+        public void onAutoFocus(boolean success, Camera camera) {
+            if (success) {
+                b_autofocus = true;
+            } else {
+                b_autofocus = false;
+            }
+        }
+    };
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -129,7 +152,9 @@ public class PreviewActivity extends SupportActivity implements ViewTreeObserver
 
         bubbleTextVew = findViewById(R.id.textbubble);
 
-        loadRootFragment(R.id.fragmentGroup, AdvFragment.newInstance());
+        advFragment = new AdvFragment();
+
+        loadRootFragment(R.id.fragmentGroup, advFragment);
 
         //在布局结束后才做初始化操作
         previewView.getViewTreeObserver().addOnGlobalLayoutListener(this);
@@ -140,6 +165,8 @@ public class PreviewActivity extends SupportActivity implements ViewTreeObserver
         adManager = new AdManager(PreviewActivity.this, advList);
         adManager.setOverScreen(true)
                 .setPageTransformer(new DepthPageTransformer());
+        userPhotoFragment = new UserPhotoFragment();
+        labelViewFragment = new LabelViewFragment();
 
     }
 
@@ -241,6 +268,7 @@ public class PreviewActivity extends SupportActivity implements ViewTreeObserver
         return allGranted;
     }
 
+
     private void initCamera() {
         DisplayMetrics metrics = new DisplayMetrics();
         getWindowManager().getDefaultDisplay().getMetrics(metrics);
@@ -258,7 +286,9 @@ public class PreviewActivity extends SupportActivity implements ViewTreeObserver
         CameraListener cameraListener = new CameraListener() {
             @Override
             public void onCameraOpened(Camera camera, int cameraId, int displayOrientation, boolean isMirror) {
+                camera.autoFocus(myAutoFocusCallback);
                 previewSize = camera.getParameters().getPreviewSize();
+
                 drawHelper = new DrawHelper(previewSize.width, previewSize.height, previewView.getWidth(), previewView.getHeight(), displayOrientation
                         , cameraId, isMirror);
             }
@@ -276,11 +306,10 @@ public class PreviewActivity extends SupportActivity implements ViewTreeObserver
                     code = faceEngine.process(nv21, previewSize.width, previewSize.height, FaceEngine.CP_PAF_NV21, faceInfoList, processMask);
                     if (code != ErrorInfo.MOK) {
                         LogUtils.i("未检测到人脸");
-                        if(noface){
+                        if (noface) {
                             noface = false;
-                            status = true;
-                            pop();
-                            replaceFragment(AdvFragment.newInstance(), true);
+                            //status = true;
+                           showHideFragment(advFragment,labelViewFragment);
                         }
 
                         return;
@@ -289,11 +318,12 @@ public class PreviewActivity extends SupportActivity implements ViewTreeObserver
                         status = false;
                         noface = true;
                         String user_id = String.valueOf(System.currentTimeMillis());
-                        //特征值提取
-                        NV21ToBitmap nv21ToBitmap = new NV21ToBitmap(PreviewActivity.this);
-                        Bitmap face = nv21ToBitmap.nv21ToBitmap(nv21, previewSize.width, previewSize.height);
-                        face = ImageUtils.rotate(face, 270, 0, 0);
-                        FaceApi.getInstance().verifyFace(face,PreviewActivity.this);
+
+                            //特征值提取
+                            NV21ToBitmap nv21ToBitmap = new NV21ToBitmap(PreviewActivity.this);
+                            Bitmap face = nv21ToBitmap.nv21ToBitmap(nv21, previewSize.width, previewSize.height);
+                            face = ImageUtils.rotate(face, 270, 0, 0);
+                            FaceApi.getInstance().verifyFace(face, PreviewActivity.this);
 //                        //弹出头像
 //                        circleView.setVisibility(View.VISIBLE);
 //                        circleView.setImageBitmap(face);
@@ -301,8 +331,18 @@ public class PreviewActivity extends SupportActivity implements ViewTreeObserver
 //                        bubbleTextVew.setText("我是测试");
 //                        bubbleTextVew.setVisibility(View.VISIBLE);
 //                        WidgetController.setLayout(bubbleTextVew, 300, 300);
-                        replaceFragment(BkFragment.newInstance(), true);
-                        // Picasso.get().load("https://timgsa.baidu.com/timg?image&quality=80&size=b9999_10000&sec=1550721735506&di=b328ed9e3193b4c076d85aee6186298f&imgtype=0&src=http%3A%2F%2Fpic.qqtn.com%2Fup%2F2017-12%2F15124441076225752.jpg").into(circleView);
+                            // replaceFragment(UserPhotoFragment.newInstance(), true);
+
+                            replaceFragment(BkFragment.newInstance(),true);
+//                            replaceFragment(userPhotoFragment,false);
+                            userPhotoFragment.subscriber();
+                            EventBus.getDefault().post(face);
+//                        Bundle bundle = new Bundle();
+//                        bundle.putString("data","传递到的数据");
+//                        UserPhotoFragment.newInstance().setFragmentResult(2000,bundle);//数据传递到fragment中
+//                        replaceFragment(UserPhotoFragment.newInstance(),true);
+                            // Picasso.get().load("https://timgsa.baidu.com/timg?image&quality=80&size=b9999_10000&sec=1550721735506&di=b328ed9e3193b4c076d85aee6186298f&imgtype=0&src=http%3A%2F%2Fpic.qqtn.com%2Fup%2F2017-12%2F15124441076225752.jpg").into(circleView);
+
                     }
                 } else {
                     return;

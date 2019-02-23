@@ -23,16 +23,12 @@ import me.yokeyword.fragmentation.SupportFragment;
  * 播放广告的
  */
 public class AdvFragment extends SupportFragment implements OnBannerListener {
+
+
     public Context context;
     private Banner banner;
     private ArrayList<String> list_path;
     private ArrayList<String> list_title;
-
-
-    public static ISupportFragment newInstance() {
-        AdvFragment advFragment = new AdvFragment();
-        return advFragment;
-    }
 
     @Nullable
     @Override
