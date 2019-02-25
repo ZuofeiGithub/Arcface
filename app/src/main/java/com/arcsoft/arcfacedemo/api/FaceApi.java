@@ -3,11 +3,13 @@ package com.arcsoft.arcfacedemo.api;
 import android.content.Context;
 import android.graphics.Bitmap;
 import android.util.Log;
+import android.view.LayoutInflater;
 import android.view.View;
 import android.widget.TextView;
 
 import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
+import com.arcsoft.arcfacedemo.R;
 import com.arcsoft.arcfacedemo.api.json.FaceRespData;
 import com.arcsoft.arcfacedemo.constants.Device;
 import com.arcsoft.arcfacedemo.constants.Url;
@@ -25,6 +27,7 @@ import com.loopj.android.http.RequestParams;
 import java.util.List;
 
 import cz.msebera.android.httpclient.Header;
+import de.hdodenhof.circleimageview.CircleImageView;
 
 public class FaceApi {
 
@@ -37,7 +40,6 @@ public class FaceApi {
         client = new AsyncHttpClient();
         builder = new GsonBuilder();
         gson = builder.create();
-        LogUtils.getConfig().setGlobalTag("结果");
     }
 
     public static FaceApi getInstance() {
@@ -114,6 +116,7 @@ public class FaceApi {
                 try {
                     FaceRespData data = gson.fromJson(new String(responseBody),FaceRespData.class);
                     LogUtils.i(data.getResult().getFace_list().get(0).getAge());
+
                 }catch (Exception e){
                     ToastUtils.showShort("有错误出现");
                 }

@@ -1,6 +1,5 @@
 package com.arcsoft.arcfacedemo.fragment;
 
-import android.content.Context;
 import android.graphics.Bitmap;
 import android.os.Bundle;
 import android.view.LayoutInflater;
@@ -10,7 +9,6 @@ import android.view.ViewGroup;
 import com.arcsoft.arcfacedemo.R;
 import com.arcsoft.arcfacedemo.util.WidgetController;
 import com.blankj.utilcode.util.LogUtils;
-import com.squareup.picasso.Picasso;
 
 import org.greenrobot.eventbus.EventBus;
 import org.greenrobot.eventbus.Subscribe;
@@ -36,10 +34,6 @@ public class UserPhotoFragment extends SupportFragment {
     @Override
     public void onViewCreated(View view, Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
-        profileImage = view.findViewById(R.id.profile_image);
-        WidgetController.setLayout(profileImage,300,300);
-        profileImage.setImageBitmap(mface);
-        startFragment();
         //Picasso.get().load("https://timgsa.baidu.com/timg?image&quality=80&size=b9999_10000&sec=1550721735506&di=b328ed9e3193b4c076d85aee6186298f&imgtype=0&src=http%3A%2F%2Fpic.qqtn.com%2Fup%2F2017-12%2F15124441076225752.jpg").into(profileImage);
     }
 
@@ -47,9 +41,5 @@ public class UserPhotoFragment extends SupportFragment {
     public void onMyEvent(Bitmap face) {
         LogUtils.i("接受到消息");
         mface = face;
-    }
-
-    void startFragment(){
-        loadRootFragment(R.id.fragmentGroupLabel,new LabelViewFragment());
     }
 }
