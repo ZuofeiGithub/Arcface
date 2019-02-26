@@ -61,11 +61,10 @@
     <TextView
         android:layout_width="wrap_content"
         android:layout_height="150dp"
-
+        android:id="@+id/show_lablel"
         android:layout_alignParentBottom="true"
         android:gravity="center"
         android:textSize="18sp"
         android:textColor="#010101"
-        android:text="不要走开，还有专属你的惊喜"
         android:background="@drawable/advance_label"/>
 </RelativeLayout>

@@ -63,4 +63,6 @@ dependencies {
 
     //定时器
     implementation 'com.github.xesam:AndroidTimer:v0.1'
+    //绘图
+    implementation 'com.github.ChillingVan:android-openGL-canvas:v1.4.1.2'
 }

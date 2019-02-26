@@ -24,7 +24,7 @@ public class LabelViewFragment extends SupportFragment {
     public void onViewCreated(View view, Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
 
-        labelView = (TextView) view.findViewById(R.id.label_view);
+        labelView =  view.findViewById(R.id.label_view);
     }
 
 }

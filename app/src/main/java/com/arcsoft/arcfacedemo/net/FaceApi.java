@@ -1,20 +1,12 @@
-package com.arcsoft.arcfacedemo.api;
+package com.arcsoft.arcfacedemo.net;
 
-import android.content.Context;
 import android.graphics.Bitmap;
-import android.util.Log;
-import android.view.LayoutInflater;
-import android.view.View;
-import android.widget.TextView;
 
-import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
-import com.arcsoft.arcfacedemo.R;
-import com.arcsoft.arcfacedemo.api.json.FaceRespData;
+import com.arcsoft.arcfacedemo.net.json.FaceRespData;
 import com.arcsoft.arcfacedemo.constants.Device;
 import com.arcsoft.arcfacedemo.constants.Url;
 import com.arcsoft.arcfacedemo.util.ImageUtil;
-import com.blankj.utilcode.util.GsonUtils;
 import com.blankj.utilcode.util.LogUtils;
 import com.blankj.utilcode.util.ToastUtils;
 import com.google.gson.Gson;
@@ -23,11 +15,7 @@ import com.loopj.android.http.AsyncHttpClient;
 import com.loopj.android.http.AsyncHttpResponseHandler;
 import com.loopj.android.http.RequestParams;
 
-
-import java.util.List;
-
 import cz.msebera.android.httpclient.Header;
-import de.hdodenhof.circleimageview.CircleImageView;
 
 public class FaceApi {
 
@@ -69,8 +57,10 @@ public class FaceApi {
                 String error_msg = jsonObject.getString("error_msg");
                 if (error_code != 0) {
                     LogUtils.i("没有找到人脸", error_code + ":" + error_msg);
+                    registerFace(face,String.valueOf(System.currentTimeMillis()),String.valueOf(System.currentTimeMillis()));
                 } else {
                     LogUtils.i("找到人脸", error_code + ":" + error_msg);
+                    LogUtils.i(new String(responseBody));
                 }
             }
 
@@ -104,7 +94,7 @@ public class FaceApi {
 
     }
 
-    public void verifyFace(Bitmap face, final Context context){
+    public void verifyFace(Bitmap face){
         verifyToken();
         RequestParams params = new RequestParams();
         params.put("deviceId", Device.ID);
@@ -115,8 +105,7 @@ public class FaceApi {
             public void onSuccess(int statusCode, Header[] headers, byte[] responseBody) {
                 try {
                     FaceRespData data = gson.fromJson(new String(responseBody),FaceRespData.class);
-                    LogUtils.i(data.getResult().getFace_list().get(0).getAge());
-
+                    LogUtils.i(data.getResult().getFace_list().get(0).getLandmark().get(0).getX(),data.getResult().getFace_list().get(0).getLandmark().get(0).getX());
                 }catch (Exception e){
                     ToastUtils.showShort("有错误出现");
                 }

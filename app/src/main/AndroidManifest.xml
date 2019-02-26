@@ -45,6 +45,7 @@
             android:name=".activity.FaceManageActivity"
             android:launchMode="singleTop" />
 
+
         <provider
             android:name="androidx.core.content.FileProvider"
             android:authorities="${applicationId}.provider"

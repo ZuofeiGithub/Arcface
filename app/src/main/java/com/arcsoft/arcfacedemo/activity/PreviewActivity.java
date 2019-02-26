@@ -11,23 +11,19 @@ import android.hardware.Camera;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.CountDownTimer;
-import android.util.DisplayMetrics;
 import android.view.View;
 import android.view.ViewTreeObserver;
 import android.view.WindowManager;
 import android.widget.Toast;
 
-import com.arcsoft.arcfacedemo.FragmentResultBkFragment;
 import com.arcsoft.arcfacedemo.R;
 import com.arcsoft.arcfacedemo.common.Constants;
 import com.arcsoft.arcfacedemo.fragment.AdvFragment;
 import com.arcsoft.arcfacedemo.fragment.BkFragment;
-import com.arcsoft.arcfacedemo.fragment.LabelViewFragment;
-import com.arcsoft.arcfacedemo.fragment.UserPhotoFragment;
+import com.arcsoft.arcfacedemo.fragment.FragmentResultBkFragment;
 import com.arcsoft.arcfacedemo.model.DrawInfo;
 import com.arcsoft.arcfacedemo.util.ConfigUtil;
 import com.arcsoft.arcfacedemo.util.DrawHelper;
-import com.arcsoft.arcfacedemo.util.Logger;
 import com.arcsoft.arcfacedemo.util.NV21ToBitmap;
 import com.arcsoft.arcfacedemo.util.camera.CameraHelper;
 import com.arcsoft.arcfacedemo.util.camera.CameraListener;
@@ -36,7 +32,6 @@ import com.arcsoft.face.AgeInfo;
 import com.arcsoft.face.ErrorInfo;
 import com.arcsoft.face.Face3DAngle;
 import com.arcsoft.face.FaceEngine;
-import com.arcsoft.face.FaceFeature;
 import com.arcsoft.face.FaceInfo;
 import com.arcsoft.face.GenderInfo;
 import com.arcsoft.face.LivenessInfo;
@@ -44,12 +39,7 @@ import com.arcsoft.face.VersionInfo;
 import com.blankj.utilcode.util.ImageUtils;
 import com.blankj.utilcode.util.LogUtils;
 import com.blankj.utilcode.util.ToastUtils;
-import com.github.library.bubbleview.BubbleTextVew;
-import com.ist.lifecyclerlib.ZLifeCycle;
-import com.ist.lifecyclerlib.listener.LifeListenerAdapter;
-import com.uuch.adlibrary.AdManager;
-import com.uuch.adlibrary.bean.AdInfo;
-import com.uuch.adlibrary.transformer.DepthPageTransformer;
+import com.youth.banner.listener.OnBannerListener;
 
 import org.greenrobot.eventbus.EventBus;
 
@@ -59,7 +49,6 @@ import java.util.List;
 import androidx.annotation.NonNull;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
-import de.hdodenhof.circleimageview.CircleImageView;
 import io.reactivex.Observable;
 import io.reactivex.ObservableEmitter;
 import io.reactivex.ObservableOnSubscribe;
@@ -69,25 +58,33 @@ import io.reactivex.disposables.Disposable;
 import io.reactivex.schedulers.Schedulers;
 import me.yokeyword.fragmentation.SupportActivity;
 
-public class PreviewActivity extends SupportActivity implements ViewTreeObserver.OnGlobalLayoutListener {
+public class PreviewActivity extends SupportActivity implements ViewTreeObserver.OnGlobalLayoutListener, OnBannerListener {
 
+    private int afCode = -1;
+    private int processMask = FaceEngine.ASF_AGE | FaceEngine.ASF_FACE3DANGLE | FaceEngine.ASF_GENDER | FaceEngine.ASF_LIVENESS;
+    //显示方向
+    private int mdisplayOrientation;
+    private int mcameraId;
+    private static final int ACTION_REQUEST_PERMISSIONS = 0x001;
+    private boolean noface = true;
     private boolean status = true;
+    private boolean misMirror;
     private CameraHelper cameraHelper;
     private DrawHelper drawHelper;
     private Camera.Size previewSize;
     private Integer cameraID = Camera.CameraInfo.CAMERA_FACING_FRONT;
     private FaceEngine faceEngine;
-    private int afCode = -1;
-    private int processMask = FaceEngine.ASF_AGE | FaceEngine.ASF_FACE3DANGLE | FaceEngine.ASF_GENDER | FaceEngine.ASF_LIVENESS;
-
     /**
      * 相机预览显示的控件，可为SurfaceView或TextureView
      */
     private View previewView;
     private FaceRectView faceRectView;
-    private BubbleTextVew bubbleTextVew;
-
-    private static final int ACTION_REQUEST_PERMISSIONS = 0x001;
+    //广告页
+    private AdvFragment advFragment;
+    //摄像机背景
+    private BkFragment bkFragment;
+    //获取头像后弹出的页面
+    private FragmentResultBkFragment fragmentResultBkFragment;
     /**
      * 所需的所有权限信息
      */
@@ -96,89 +93,51 @@ public class PreviewActivity extends SupportActivity implements ViewTreeObserver
             Manifest.permission.READ_PHONE_STATE
     };
 
-    //弹窗
-    private AdManager adManager;
-    private List<AdInfo> advList;
-
-    private CircleImageView circleView;
-    private boolean noface = true;
-    private boolean b_autofocus = false;
-
-    UserPhotoFragment userPhotoFragment;
-
-    LabelViewFragment labelViewFragment;
-
-    AdvFragment advFragment;
-
-    private int mdisplayOrientation;
-
-    private Camera.AutoFocusCallback myAutoFocusCallback = new Camera.AutoFocusCallback() {
-        @Override
-        public void onAutoFocus(boolean success, Camera camera) {
-            if (success) {
-                b_autofocus = true;
-            } else {
-                b_autofocus = false;
-            }
-        }
-    };
-    private boolean misMirror;
-    private int mcameraId;
-    private boolean changed = true;
-
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_preview);
-        ZLifeCycle.with(this, new LifeListenerAdapter() {
-            @Override
-            public void onStart() {
-                LogUtils.i(this.getClass().toString() + "开始");
-                super.onStart();
-            }
+        initView();
+    }
 
-            @Override
-            public void onResume() {
-                LogUtils.i(this.getClass().toString() + "继续");
-                super.onResume();
-            }
-
-            @Override
-            public void onPause() {
-                LogUtils.i(this.getClass().toString() + "暂停");
-                super.onPause();
-            }
-
-            @Override
-            public void onStop() {
-                LogUtils.i(this.getClass().toString() + "停止");
-                super.onStop();
-            }
-
-            @Override
-            public void onDestroy() {
-                LogUtils.i(this.getClass().toString() + "销毁");
-                super.onDestroy();
-            }
-
-            @Override
-            public void onFail(String errorMsg) {
-                LogUtils.i(this.getClass().toString() + "错误");
-                super.onFail(errorMsg);
-            }
-        });
-        Logger.init(this.getApplication());
-        Logger.setTag("zuofei");
-        LogUtils.getConfig().setGlobalTag("zuofei");
+    private void initView() {
         getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
             WindowManager.LayoutParams attributes = getWindow().getAttributes();
             attributes.systemUiVisibility = View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY | View.SYSTEM_UI_FLAG_HIDE_NAVIGATION;
             getWindow().setAttributes(attributes);
         }
+        lockOrientation();
 
+        LogUtils.getConfig().setGlobalTag("zuofei");
+        previewView = findViewById(R.id.texture_preview);
+        faceRectView = findViewById(R.id.face_rect_view);
+        advFragment = new AdvFragment();
+        bkFragment = new BkFragment();
+        fragmentResultBkFragment = new FragmentResultBkFragment();
+        loadRootFragment(R.id.fragmentGroup, advFragment);
+        //在布局结束后才做初始化操作
+        previewView.getViewTreeObserver().addOnGlobalLayoutListener(this);
+    }
 
-        // Activity启动后就锁定为启动时的方向
+    /**
+     * 在{@link #previewView}第一次布局完成后，去除该监听，并且进行引擎和相机的初始化
+     */
+    @Override
+    public void onGlobalLayout() {
+        previewView.getViewTreeObserver().removeOnGlobalLayoutListener(this);
+        if (!checkPermissions(NEEDED_PERMISSIONS)) {
+            ActivityCompat.requestPermissions(this, NEEDED_PERMISSIONS, ACTION_REQUEST_PERMISSIONS);
+        } else {
+            initEngine(); //初始化人脸识别引擎
+            initCamera(); //初始化相机
+        }
+    }
+
+    /**
+     * Activity启动后就锁定为启动时的方向
+     */
+    private void lockOrientation() {
         switch (getResources().getConfiguration().orientation) {
             case Configuration.ORIENTATION_PORTRAIT:
                 setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);
@@ -189,31 +148,6 @@ public class PreviewActivity extends SupportActivity implements ViewTreeObserver
             default:
                 break;
         }
-
-
-        previewView = findViewById(R.id.texture_preview);
-        faceRectView = findViewById(R.id.face_rect_view);
-
-        circleView = findViewById(R.id.profile_image);
-
-        bubbleTextVew = findViewById(R.id.textbubble);
-
-        advFragment = new AdvFragment();
-
-        loadRootFragment(R.id.fragmentGroup, advFragment);
-
-        //在布局结束后才做初始化操作
-        previewView.getViewTreeObserver().addOnGlobalLayoutListener(this);
-        advList = new ArrayList<>();
-        AdInfo adInfo = new AdInfo();
-        adInfo.setActivityImg("https://raw.githubusercontent.com/yipianfengye/android-adDialog/master/images/testImage1.png");
-        advList.add(adInfo);
-        adManager = new AdManager(PreviewActivity.this, advList);
-        adManager.setOverScreen(true)
-                .setPageTransformer(new DepthPageTransformer());
-        userPhotoFragment = new UserPhotoFragment();
-        labelViewFragment = new LabelViewFragment();
-
     }
 
     public void activeEngine(final View view) {
@@ -271,26 +205,9 @@ public class PreviewActivity extends SupportActivity implements ViewTreeObserver
 
                     }
                 });
-
     }
 
-    private void initEngine() {
-        faceEngine = new FaceEngine();
-        afCode = faceEngine.init(this.getApplicationContext(), FaceEngine.ASF_DETECT_MODE_VIDEO, ConfigUtil.getFtOrient(this),
-                16, 1, FaceEngine.ASF_FACE_DETECT | FaceEngine.ASF_AGE | FaceEngine.ASF_FACE3DANGLE | FaceEngine.ASF_GENDER | FaceEngine.ASF_LIVENESS | FaceEngine.ASF_FACE_RECOGNITION);
-        VersionInfo versionInfo = new VersionInfo();
-        faceEngine.getVersion(versionInfo);
-        if (afCode != ErrorInfo.MOK) {
-            ToastUtils.showShort("激活失败,失败码:%d", afCode);
-        }
-    }
 
-    private void unInitEngine() {
-
-        if (afCode == 0) {
-            afCode = faceEngine.unInit();
-        }
-    }
 
 
     @Override
@@ -316,37 +233,24 @@ public class PreviewActivity extends SupportActivity implements ViewTreeObserver
 
 
     private void initCamera() {
-        DisplayMetrics metrics = new DisplayMetrics();
-        getWindowManager().getDefaultDisplay().getMetrics(metrics);
 
-        int width = metrics.widthPixels;
-        int height = metrics.heightPixels;
-        float density = metrics.density;
-
+        //播放音效
         //MusicManager.getInstance().play(PreviewActivity.this, R.raw.wayo);
-
-
         CameraListener cameraListener = new CameraListener() {
             @Override
             public void onCameraOpened(Camera camera, int cameraId, int displayOrientation, boolean isMirror) {
-                camera.autoFocus(myAutoFocusCallback);
                 previewSize = camera.getParameters().getPreviewSize();
                 mdisplayOrientation = displayOrientation;
                 misMirror = isMirror;
                 mcameraId = cameraId;
-                drawHelper = new DrawHelper(previewSize.width, previewSize.height, previewView.getWidth(), previewView.getHeight(), displayOrientation
-                        , cameraId, isMirror);
+                drawHelper = new DrawHelper(previewSize.width, previewSize.height, previewView.getWidth(), previewView.getHeight(), displayOrientation, cameraId, isMirror);
             }
-
-
             @Override
             public void onPreview(final byte[] nv21, Camera camera) {
                 if (faceRectView != null) {
                     faceRectView.clearFaceInfo();
                 }
                 final List<FaceInfo> faceInfoList = new ArrayList<>();
-                final FaceFeature faceFeature = new FaceFeature();
-
                 int code = faceEngine.detectFaces(nv21, previewSize.width, previewSize.height, FaceEngine.CP_PAF_NV21, faceInfoList);
                 if (code == ErrorInfo.MOK && faceInfoList.size() > 0) {
                     code = faceEngine.process(nv21, previewSize.width, previewSize.height, FaceEngine.CP_PAF_NV21, faceInfoList, processMask);
@@ -354,62 +258,40 @@ public class PreviewActivity extends SupportActivity implements ViewTreeObserver
                         if (noface) {
                             noface = false;
                             status = true;
-                            changed = true;
-                            bubbleTextVew.setVisibility(View.GONE);
-                            circleView.setVisibility(View.GONE);
                             replaceFragment(advFragment, true);
                         }
-
                         return;
                     }
 
+                    //获取真实人脸位置
                     final Rect faceRect = adjustRect(faceInfoList.get(0).getRect(), previewSize.width, previewSize.height, previewView.getWidth(), previewView.getHeight(), mdisplayOrientation, mcameraId, misMirror, false, false);
-                    if(changed){
-                        changed = false;
-                        replaceFragment(BkFragment.newInstance(), true);
-                    }
-                    if (faceRect.contains(300, 600)) {
-                        LogUtils.i("进入了指定区域");
+
+                    if (faceRect.contains(300, 800)) {
                         if (status) {
                             status = false;
                             noface = true;
+                            loadRootFragment(R.id.fragmentGroup,bkFragment);
                             CountDownTimer timer = new CountDownTimer(2000, 1000) {
-
                                 @Override
                                 public void onTick(long millisUntilFinished) {
 
                                 }
-
                                 @Override
                                 public void onFinish() {
                                     NV21ToBitmap nv21ToBitmap = new NV21ToBitmap(PreviewActivity.this);
                                     Bitmap face = nv21ToBitmap.nv21ToBitmap(nv21, previewSize.width, previewSize.height);
-                                    face = ImageUtils.rotate(face, 270, 0, 0);
+                                    face = ImageUtils.rotate(face, 0, 0, 0);
                                     final Bitmap finalFace = face;
-                                    Bitmap clipFace = ImageUtils.clip(finalFace, faceRect.left, faceRect.top, faceRect.width(), faceRect.height());
-                                    replaceFragment(new FragmentResultBkFragment(), true);
-                                    EventBus.getDefault().post(clipFace);
+                                    //Bitmap clipFace = ImageUtils.clip(finalFace, faceRect.left, faceRect.top, faceRect.width(), faceRect.height());
+                                    replaceFragment(fragmentResultBkFragment, true);
+                                    EventBus.getDefault().post(finalFace);
 
-                                    //FaceApi.getInstance().registerFace(clipFace,String.valueOf(System.currentTimeMillis()),"测试");
-                                    //弹出气泡
-//                                    bubbleTextVew.setText("我是测试");
-//                                    bubbleTextVew.setVisibility(View.VISIBLE);
-//                                    WidgetController.setLayout(bubbleTextVew, faceInfoList.get(0).getRect().centerX(),faceInfoList.get(0).getRect().centerX());
-                                    // replaceFragment(UserPhotoFragment.newInstance(), true);
-//                                    circleView.setVisibility(View.VISIBLE);
-//                                    circleView.setBackgroundResource(R.drawable.circle);
-//                                    circleView.setImageBitmap(finalFace);
-                                    //EventBus.getDefault().post(finalFace);
+                                    //FaceApi.getInstance().verifyFace(clipFace);
                                 }
                             };
                             timer.start();
-//
-
-                            // Picasso.get().load("https://timgsa.baidu.com/timg?image&quality=80&size=b9999_10000&sec=1550721735506&di=b328ed9e3193b4c076d85aee6186298f&imgtype=0&src=http%3A%2F%2Fpic.qqtn.com%2Fup%2F2017-12%2F15124441076225752.jpg").into(circleView);
-
                         }
                     }
-
                 } else {
                     return;
                 }
@@ -453,7 +335,6 @@ public class PreviewActivity extends SupportActivity implements ViewTreeObserver
                 if (drawHelper != null) {
                     drawHelper.setCameraDisplayOrientation(displayOrientation);
                 }
-
             }
         };
         cameraHelper = new CameraHelper.Builder()
@@ -483,21 +364,31 @@ public class PreviewActivity extends SupportActivity implements ViewTreeObserver
         }
     }
 
+
+
     /**
-     * 在{@link #previewView}第一次布局完成后，去除该监听，并且进行引擎和相机的初始化
+     * 初始化引擎
      */
-    @Override
-    public void onGlobalLayout() {
-        previewView.getViewTreeObserver().removeOnGlobalLayoutListener(this);
-        if (!checkPermissions(NEEDED_PERMISSIONS)) {
-            ActivityCompat.requestPermissions(this, NEEDED_PERMISSIONS, ACTION_REQUEST_PERMISSIONS);
-        } else {
-            initEngine();
-            initCamera();
+    private void initEngine() {
+        faceEngine = new FaceEngine();
+        afCode = faceEngine.init(this.getApplicationContext(), FaceEngine.ASF_DETECT_MODE_VIDEO, ConfigUtil.getFtOrient(this),
+                16, 1, FaceEngine.ASF_FACE_DETECT | FaceEngine.ASF_AGE | FaceEngine.ASF_FACE3DANGLE | FaceEngine.ASF_GENDER | FaceEngine.ASF_LIVENESS | FaceEngine.ASF_FACE_RECOGNITION);
+        VersionInfo versionInfo = new VersionInfo();
+        faceEngine.getVersion(versionInfo);
+        if (afCode != ErrorInfo.MOK) {
+            ToastUtils.showShort("激活失败,失败码:%d", afCode);
         }
     }
 
+    /**
+     * 取消初始化
+     */
+    private void unInitEngine() {
 
+        if (afCode == 0) {
+            afCode = faceEngine.unInit();
+        }
+    }
     /**
      * @param ftRect                   FT人脸框
      * @param previewWidth             相机预览的宽度
@@ -604,5 +495,10 @@ public class PreviewActivity extends SupportActivity implements ViewTreeObserver
             newRect.bottom = canvasHeight - top;
         }
         return newRect;
+    }
+
+    @Override
+    public void OnBannerClick(int position) {
+
     }
 }
