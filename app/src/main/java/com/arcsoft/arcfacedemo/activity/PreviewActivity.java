@@ -22,6 +22,7 @@ import com.arcsoft.arcfacedemo.fragment.AdvFragment;
 import com.arcsoft.arcfacedemo.fragment.BkFragment;
 import com.arcsoft.arcfacedemo.fragment.FragmentResultBkFragment;
 import com.arcsoft.arcfacedemo.model.DrawInfo;
+import com.arcsoft.arcfacedemo.model.MessageInfo;
 import com.arcsoft.arcfacedemo.util.ConfigUtil;
 import com.arcsoft.arcfacedemo.util.DrawHelper;
 import com.arcsoft.arcfacedemo.util.NV21ToBitmap;
@@ -150,6 +151,10 @@ public class PreviewActivity extends SupportActivity implements ViewTreeObserver
         }
     }
 
+    /**
+     * 激活引擎
+     * @param view
+     */
     public void activeEngine(final View view) {
         if (!checkPermissions(NEEDED_PERMISSIONS)) {
             ActivityCompat.requestPermissions(this, NEEDED_PERMISSIONS, ACTION_REQUEST_PERMISSIONS);
@@ -282,9 +287,40 @@ public class PreviewActivity extends SupportActivity implements ViewTreeObserver
                                     Bitmap face = nv21ToBitmap.nv21ToBitmap(nv21, previewSize.width, previewSize.height);
                                     face = ImageUtils.rotate(face, 270, -20, -20);
                                     final Bitmap finalFace = face;
-                                    //Bitmap clipFace = ImageUtils.clip(finalFace, faceRect.left, faceRect.top, faceRect.width(), faceRect.height());
+                                    Bitmap clipFace = ImageUtils.clip(finalFace, faceRect.left, faceRect.top, faceRect.width(), faceRect.height());
                                     replaceFragment(fragmentResultBkFragment, true);
-                                    EventBus.getDefault().post(finalFace);
+
+                                    List<AgeInfo> ageInfoList = new ArrayList<>();
+                                    List<GenderInfo> genderInfoList = new ArrayList<>();
+                                    List<Face3DAngle> face3DAngleList = new ArrayList<>();
+                                    List<LivenessInfo> faceLivenessInfoList = new ArrayList<>();
+
+                                    int ageCode = faceEngine.getAge(ageInfoList);
+                                    int genderCode = faceEngine.getGender(genderInfoList);
+                                    int face3DAngleCode = faceEngine.getFace3DAngle(face3DAngleList);
+                                    int livenessCode = faceEngine.getLiveness(faceLivenessInfoList);
+
+                                    //有其中一个的错误码不为0，return
+                                    if ((ageCode | genderCode | face3DAngleCode | livenessCode) != ErrorInfo.MOK) {
+                                        return;
+                                    }
+                                    if (faceRectView != null && drawHelper != null) {
+                                        List<DrawInfo> drawInfoList = new ArrayList<>();
+                                        for (int i = 0; i < faceInfoList.size(); i++) {
+                                            drawInfoList.add(new DrawInfo(faceInfoList.get(i).getRect(), genderInfoList.get(i).getGender(), ageInfoList.get(i).getAge(), faceLivenessInfoList.get(i).getLiveness(), null));
+                                            MessageInfo msgInfo = new MessageInfo();
+                                            msgInfo.setAge(ageInfoList.get(i).getAge());
+                                            msgInfo.setGender(genderInfoList.get(i).getGender());
+                                            msgInfo.setFaceMap(clipFace);
+                                            EventBus.getDefault().post(msgInfo);
+                                        }
+                                        drawHelper.draw(faceRectView, drawInfoList);
+                                    }
+
+
+
+
+
 
                                     //FaceApi.getInstance().verifyFace(clipFace);
                                 }
@@ -294,29 +330,6 @@ public class PreviewActivity extends SupportActivity implements ViewTreeObserver
                     }
                 } else {
                     return;
-                }
-
-
-                List<AgeInfo> ageInfoList = new ArrayList<>();
-                List<GenderInfo> genderInfoList = new ArrayList<>();
-                List<Face3DAngle> face3DAngleList = new ArrayList<>();
-                List<LivenessInfo> faceLivenessInfoList = new ArrayList<>();
-
-                int ageCode = faceEngine.getAge(ageInfoList);
-                int genderCode = faceEngine.getGender(genderInfoList);
-                int face3DAngleCode = faceEngine.getFace3DAngle(face3DAngleList);
-                int livenessCode = faceEngine.getLiveness(faceLivenessInfoList);
-
-                //有其中一个的错误码不为0，return
-                if ((ageCode | genderCode | face3DAngleCode | livenessCode) != ErrorInfo.MOK) {
-                    return;
-                }
-                if (faceRectView != null && drawHelper != null) {
-                    List<DrawInfo> drawInfoList = new ArrayList<>();
-                    for (int i = 0; i < faceInfoList.size(); i++) {
-                        drawInfoList.add(new DrawInfo(faceInfoList.get(i).getRect(), genderInfoList.get(i).getGender(), ageInfoList.get(i).getAge(), faceLivenessInfoList.get(i).getLiveness(), null));
-                    }
-                    drawHelper.draw(faceRectView, drawInfoList);
                 }
             }
 

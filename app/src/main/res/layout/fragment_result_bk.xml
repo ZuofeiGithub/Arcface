@@ -32,7 +32,6 @@
                 android:layout_height="wrap_content"
                 android:background="@drawable/age_bk"
                 android:gravity="center"
-                android:text="25岁"
                 android:textColor="#f13872"
                 android:textSize="35sp" />
 
