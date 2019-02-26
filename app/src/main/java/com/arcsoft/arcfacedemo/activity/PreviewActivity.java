@@ -280,7 +280,7 @@ public class PreviewActivity extends SupportActivity implements ViewTreeObserver
                                 public void onFinish() {
                                     NV21ToBitmap nv21ToBitmap = new NV21ToBitmap(PreviewActivity.this);
                                     Bitmap face = nv21ToBitmap.nv21ToBitmap(nv21, previewSize.width, previewSize.height);
-                                    face = ImageUtils.rotate(face, 0, 0, 0);
+                                    face = ImageUtils.rotate(face, 270, -20, -20);
                                     final Bitmap finalFace = face;
                                     //Bitmap clipFace = ImageUtils.clip(finalFace, faceRect.left, faceRect.top, faceRect.width(), faceRect.height());
                                     replaceFragment(fragmentResultBkFragment, true);
