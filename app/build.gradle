@@ -60,9 +60,15 @@ dependencies {
     implementation 'com.github.LillteZheng:ZlifeCycle:v1.0'
     //画图控件
     implementation 'com.github.infotech-group:CanvasView:1.0.0'
-
     //定时器
     implementation 'com.github.xesam:AndroidTimer:v0.1'
     //绘图
     implementation 'com.github.ChillingVan:android-openGL-canvas:v1.4.1.2'
+    //九宫图
+    implementation 'com.jaeger.ninegridimageview:library:1.1.1'
+    //图片加载
+    implementation 'com.squareup.picasso:picasso:2.71828'
+    //图片视图
+    implementation 'com.bm.photoview:library:1.4.1'
+    implementation project(':stv')
 }

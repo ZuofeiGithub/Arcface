@@ -3,67 +3,137 @@
     android:layout_width="match_parent"
     android:background="@drawable/result_bk"
     android:layout_height="match_parent">
-    <de.hdodenhof.circleimageview.CircleImageView
-        android:layout_width="200dp"
-        android:layout_height="200dp"
-        android:padding="30dp"
-        android:id="@+id/circle_image"
-        android:layout_centerHorizontal="true"
-       android:layout_marginTop="100dp"/>
-
     <RelativeLayout
-        android:layout_width="match_parent"
-        android:layout_height="300dp"
-        android:layout_margin="40sp">
+        android:layout_width="600dp"
+        android:layout_marginTop="100dp"
+        android:layout_height="wrap_content">
+        <de.hdodenhof.circleimageview.CircleImageView
+            android:layout_width="150dp"
+            android:layout_height="150dp"
+            android:padding="30dp"
+            android:background="@drawable/circle"
+            android:id="@+id/circle_image"
+            android:layout_centerHorizontal="true"
+            android:layout_marginTop="100dp"/>
 
-        <LinearLayout
+        <RelativeLayout
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:gravity="center"
-            android:layout_marginStart="0dp"
-            android:layout_marginTop="180dp"
-            android:layout_marginEnd="0dp"
-            android:layout_marginBottom="0dp"
-            android:orientation="horizontal">
+            android:layout_height="600dp">
 
             <TextView
-                android:id="@+id/age_view"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:background="@drawable/age_bk"
+                android:layout_marginLeft="60dp"
+                android:layout_marginTop="100dp"
+                android:background="@drawable/label_one"
+                android:visibility="gone"
+                android:id="@+id/lablel_one"
                 android:gravity="center"
-                android:textColor="#f13872"
-                android:textSize="35sp" />
+                android:text="长标签"
+                android:textColor="#ecc68c" />
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginLeft="230dp"
+                android:layout_marginTop="75dp"
+                android:background="@drawable/label_two"
+                android:visibility="gone"
+                android:id="@+id/label_two"
+                android:gravity="center"
+                android:text="长标签的啦"
+                android:textColor="#ecc68c" />
 
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_alignParentTop="true"
-                android:layout_alignParentBottom="true"
-                android:autoSizeTextType="none"
-                android:background="@drawable/descript_bk"
-                android:gravity="center|left"
-                android:padding="20dp"
-                android:text="帅气的小伙"
-                android:textSize="25sp" />
+                android:layout_marginLeft="60dp"
+                android:layout_marginTop="10dp"
+                android:background="@drawable/label_three"
+                android:visibility="gone"
+                android:id="@+id/label_three"
+                android:gravity="center"
+                android:text="长标签的啦"
+                android:textColor="#ecc68c" />
 
-        </LinearLayout>
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="250dp"
+                android:layout_marginLeft="250dp"
+                android:background="@drawable/label_four"
+                android:visibility="gone"
+                android:id="@+id/label_four"
+                android:gravity="center"
+                android:text="长标签的啦"
+                android:textColor="#ecc68c" />
 
-        <ImageView
-            android:scaleType="centerInside"
-            android:layout_width="wrap_content"
-            android:layout_height="50dp"
-            android:layout_marginTop="215dp"
-            android:layout_marginLeft="280dp"
-            android:src="@drawable/sex" />
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="250dp"
+                android:layout_marginLeft="20dp"
+                android:background="@drawable/label_five"
+                android:visibility="gone"
+                android:id="@+id/label_five"
+                android:gravity="center"
+                android:text="长标签的啦"
+                android:textColor="#ecc68c" />
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="310dp"
+                android:layout_marginLeft="160dp"
+                android:background="@drawable/label_six"
+                android:visibility="gone"
+                android:id="@+id/label_six"
+                android:gravity="center"
+                android:text="长标签的啦"
+                android:textColor="#ecc68c" />
+
+            <LinearLayout
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:gravity="center"
+                android:layout_marginTop="195dp"
+                android:layout_centerHorizontal="true"
+                android:orientation="horizontal">
+
+                <TextView
+                    android:id="@+id/age_view"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:background="@drawable/age_bk"
+                    android:gravity="center"
+                    android:textColor="#f13872"
+                    android:textSize="35sp" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:id="@+id/face_descript"
+                    android:gravity="center"
+                    android:background="@drawable/descript_bk"
+                    android:textSize="25sp" />
+            </LinearLayout>
+        </RelativeLayout>
     </RelativeLayout>
+
+
     <TextView
         android:layout_width="wrap_content"
         android:layout_height="150dp"
         android:id="@+id/show_lablel"
+        android:layout_marginBottom="60dp"
         android:layout_alignParentBottom="true"
         android:gravity="center"
         android:textSize="18sp"
         android:textColor="#010101"
         android:background="@drawable/advance_label"/>
+    <FrameLayout
+        android:background="#010001"
+        android:alpha="0.8"
+        android:visibility="gone"
+        android:id="@+id/resultfraglayout"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent" />
 </RelativeLayout>

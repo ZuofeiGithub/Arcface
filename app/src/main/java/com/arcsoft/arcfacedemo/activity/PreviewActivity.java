@@ -287,7 +287,7 @@ public class PreviewActivity extends SupportActivity implements ViewTreeObserver
                                     Bitmap face = nv21ToBitmap.nv21ToBitmap(nv21, previewSize.width, previewSize.height);
                                     face = ImageUtils.rotate(face, 270, -20, -20);
                                     final Bitmap finalFace = face;
-                                    Bitmap clipFace = ImageUtils.clip(finalFace, faceRect.left, faceRect.top, faceRect.width(), faceRect.height());
+                                    Bitmap clipFace = ImageUtils.clip(finalFace, faceRect.left > 0 ? faceRect.left:0, faceRect.top > 0 ? faceRect.top:0, faceRect.width(), faceRect.height());
                                     replaceFragment(fragmentResultBkFragment, true);
 
                                     List<AgeInfo> ageInfoList = new ArrayList<>();
