@@ -32,4 +32,9 @@
         android:layout_height="wrap_content"
         android:src="@mipmap/look_more"
         />
+    <FrameLayout
+        android:id="@+id/choose_fraglayout"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent">
+    </FrameLayout>
 </RelativeLayout>

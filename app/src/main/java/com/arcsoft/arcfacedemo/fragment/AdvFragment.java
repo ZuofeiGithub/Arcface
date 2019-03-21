@@ -78,6 +78,6 @@ public class AdvFragment extends SupportFragment implements OnBannerListener {
 
     @Override
     public void OnBannerClick(int position) {
-        pop();
+
     }
 }

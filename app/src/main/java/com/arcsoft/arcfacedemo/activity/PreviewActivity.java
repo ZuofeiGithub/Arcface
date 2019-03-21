@@ -5,12 +5,16 @@ import android.content.pm.ActivityInfo;
 import android.content.pm.PackageManager;
 import android.content.res.Configuration;
 import android.graphics.Bitmap;
+import android.graphics.Canvas;
+import android.graphics.Color;
+import android.graphics.Matrix;
+import android.graphics.Paint;
 import android.graphics.Point;
 import android.graphics.Rect;
 import android.hardware.Camera;
 import android.os.Build;
 import android.os.Bundle;
-import android.os.CountDownTimer;
+import android.util.DisplayMetrics;
 import android.view.View;
 import android.view.ViewTreeObserver;
 import android.view.WindowManager;
@@ -40,16 +44,20 @@ import com.arcsoft.face.VersionInfo;
 import com.blankj.utilcode.util.ImageUtils;
 import com.blankj.utilcode.util.LogUtils;
 import com.blankj.utilcode.util.ToastUtils;
+import com.facebook.drawee.drawable.DrawableUtils;
+import com.tencent.bugly.crashreport.CrashReport;
 import com.youth.banner.listener.OnBannerListener;
 
 import org.greenrobot.eventbus.EventBus;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.TimerTask;
 
 import androidx.annotation.NonNull;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
+import dev.xesam.android.toolbox.timer.CountDownTimer;
 import io.reactivex.Observable;
 import io.reactivex.ObservableEmitter;
 import io.reactivex.ObservableOnSubscribe;
@@ -60,64 +68,57 @@ import io.reactivex.schedulers.Schedulers;
 import me.yokeyword.fragmentation.SupportActivity;
 
 public class PreviewActivity extends SupportActivity implements ViewTreeObserver.OnGlobalLayoutListener, OnBannerListener {
-
-    private int afCode = -1;
+    private static final String[] NEEDED_PERMISSIONS = new String[]{Manifest.permission.CAMERA, Manifest.permission.READ_PHONE_STATE};
     private int processMask = FaceEngine.ASF_AGE | FaceEngine.ASF_FACE3DANGLE | FaceEngine.ASF_GENDER | FaceEngine.ASF_LIVENESS;
-    //显示方向
-    private int mdisplayOrientation;
-    private int mcameraId;
-    private static final int ACTION_REQUEST_PERMISSIONS = 0x001;
-    private boolean noface = true;
-    private boolean status = true;
-    private boolean misMirror;
-    private CameraHelper cameraHelper;
-    private DrawHelper drawHelper;
-    private Camera.Size previewSize;
     private Integer cameraID = Camera.CameraInfo.CAMERA_FACING_FRONT;
+    private static final int ACTION_REQUEST_PERMISSIONS = 0x001;
+    private FragmentResultBkFragment fragmentResultBkFragment;
+    private FaceRectView faceRectView;
+    private CameraHelper cameraHelper;
+    private Camera.Size previewSize;
+    private int mdisplayOrientation;
+
+    private AdvFragment advFragment;
+    //摄像机背景
+    private BkFragment bkFragment;
+    private DrawHelper drawHelper;
     private FaceEngine faceEngine;
+
+    private boolean misMirror;
+    private Bitmap finalFace;
     /**
      * 相机预览显示的控件，可为SurfaceView或TextureView
      */
     private View previewView;
-    private FaceRectView faceRectView;
-    //广告页
-    private AdvFragment advFragment;
-    //摄像机背景
-    private BkFragment bkFragment;
-    //获取头像后弹出的页面
-    private FragmentResultBkFragment fragmentResultBkFragment;
-    /**
-     * 所需的所有权限信息
-     */
-    private static final String[] NEEDED_PERMISSIONS = new String[]{
-            Manifest.permission.CAMERA,
-            Manifest.permission.READ_PHONE_STATE
-    };
+    private int afCode = -1;
+    private int mcameraId;
+
+    private boolean status = true;
+    private boolean isDetect = true;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_preview);
+        CrashReport.initCrashReport(getApplicationContext());
         initView();
     }
 
     private void initView() {
-        getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
             WindowManager.LayoutParams attributes = getWindow().getAttributes();
             attributes.systemUiVisibility = View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY | View.SYSTEM_UI_FLAG_HIDE_NAVIGATION;
             getWindow().setAttributes(attributes);
         }
-        lockOrientation();
-
+        getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
+        fragmentResultBkFragment = new FragmentResultBkFragment();
         LogUtils.getConfig().setGlobalTag("zuofei");
         previewView = findViewById(R.id.texture_preview);
         faceRectView = findViewById(R.id.face_rect_view);
         advFragment = new AdvFragment();
         bkFragment = new BkFragment();
-        fragmentResultBkFragment = new FragmentResultBkFragment();
-        loadRootFragment(R.id.fragmentGroup, advFragment);
         //在布局结束后才做初始化操作
+        lockOrientation();
         previewView.getViewTreeObserver().addOnGlobalLayoutListener(this);
     }
 
@@ -132,6 +133,8 @@ public class PreviewActivity extends SupportActivity implements ViewTreeObserver
         } else {
             initEngine(); //初始化人脸识别引擎
             initCamera(); //初始化相机
+            //初始化广告页
+             loadRootFragment(R.id.fragmentGroup, advFragment);
         }
     }
 
@@ -153,6 +156,7 @@ public class PreviewActivity extends SupportActivity implements ViewTreeObserver
 
     /**
      * 激活引擎
+     *
      * @param view
      */
     public void activeEngine(final View view) {
@@ -165,7 +169,7 @@ public class PreviewActivity extends SupportActivity implements ViewTreeObserver
         }
         Observable.create(new ObservableOnSubscribe<Integer>() {
             @Override
-            public void subscribe(ObservableEmitter<Integer> emitter) throws Exception {
+            public void subscribe(ObservableEmitter<Integer> emitter) {
                 FaceEngine faceEngine = new FaceEngine();
                 int activeCode = faceEngine.active(PreviewActivity.this, Constants.APP_ID, Constants.SDK_KEY);
                 emitter.onNext(activeCode);
@@ -182,7 +186,6 @@ public class PreviewActivity extends SupportActivity implements ViewTreeObserver
                     @Override
                     public void onNext(Integer activeCode) {
                         if (activeCode == ErrorInfo.MOK) {
-
                             ToastUtils.showShort("激活成功");
                             initEngine();
                             initCamera();
@@ -213,8 +216,6 @@ public class PreviewActivity extends SupportActivity implements ViewTreeObserver
     }
 
 
-
-
     @Override
     protected void onDestroy() {
         if (cameraHelper != null) {
@@ -236,9 +237,7 @@ public class PreviewActivity extends SupportActivity implements ViewTreeObserver
         return allGranted;
     }
 
-
     private void initCamera() {
-
         //播放音效
         //MusicManager.getInstance().play(PreviewActivity.this, R.raw.wayo);
         CameraListener cameraListener = new CameraListener() {
@@ -250,92 +249,16 @@ public class PreviewActivity extends SupportActivity implements ViewTreeObserver
                 mcameraId = cameraId;
                 drawHelper = new DrawHelper(previewSize.width, previewSize.height, previewView.getWidth(), previewView.getHeight(), displayOrientation, cameraId, isMirror);
             }
+
             @Override
             public void onPreview(final byte[] nv21, Camera camera) {
-                if (faceRectView != null) {
-                    faceRectView.clearFaceInfo();
-                }
-                final List<FaceInfo> faceInfoList = new ArrayList<>();
-                int code = faceEngine.detectFaces(nv21, previewSize.width, previewSize.height, FaceEngine.CP_PAF_NV21, faceInfoList);
-                if (code == ErrorInfo.MOK && faceInfoList.size() > 0) {
-                    code = faceEngine.process(nv21, previewSize.width, previewSize.height, FaceEngine.CP_PAF_NV21, faceInfoList, processMask);
-                    if (code != ErrorInfo.MOK) {
-                        if (noface) {
-                            noface = false;
-                            status = true;
-                            replaceFragment(advFragment, true);
-                        }
-                        return;
-                    }
-
-                    //获取真实人脸位置
-                    final Rect faceRect = adjustRect(faceInfoList.get(0).getRect(), previewSize.width, previewSize.height, previewView.getWidth(), previewView.getHeight(), mdisplayOrientation, mcameraId, misMirror, false, false);
-
-                    if (faceRect.contains(300, 800)) {
-                        if (status) {
-                            status = false;
-                            noface = true;
-                            loadRootFragment(R.id.fragmentGroup,bkFragment);
-                            CountDownTimer timer = new CountDownTimer(2000, 1000) {
-                                @Override
-                                public void onTick(long millisUntilFinished) {
-
-                                }
-                                @Override
-                                public void onFinish() {
-                                    NV21ToBitmap nv21ToBitmap = new NV21ToBitmap(PreviewActivity.this);
-                                    Bitmap face = nv21ToBitmap.nv21ToBitmap(nv21, previewSize.width, previewSize.height);
-                                    face = ImageUtils.rotate(face, 270, -20, -20);
-                                    final Bitmap finalFace = face;
-                                    Bitmap clipFace = ImageUtils.clip(finalFace, faceRect.left > 0 ? faceRect.left:0, faceRect.top > 0 ? faceRect.top:0, faceRect.width(), faceRect.height());
-                                    replaceFragment(fragmentResultBkFragment, true);
-
-                                    List<AgeInfo> ageInfoList = new ArrayList<>();
-                                    List<GenderInfo> genderInfoList = new ArrayList<>();
-                                    List<Face3DAngle> face3DAngleList = new ArrayList<>();
-                                    List<LivenessInfo> faceLivenessInfoList = new ArrayList<>();
-
-                                    int ageCode = faceEngine.getAge(ageInfoList);
-                                    int genderCode = faceEngine.getGender(genderInfoList);
-                                    int face3DAngleCode = faceEngine.getFace3DAngle(face3DAngleList);
-                                    int livenessCode = faceEngine.getLiveness(faceLivenessInfoList);
-
-                                    //有其中一个的错误码不为0，return
-                                    if ((ageCode | genderCode | face3DAngleCode | livenessCode) != ErrorInfo.MOK) {
-                                        return;
-                                    }
-                                    if (faceRectView != null && drawHelper != null) {
-                                        List<DrawInfo> drawInfoList = new ArrayList<>();
-                                        for (int i = 0; i < faceInfoList.size(); i++) {
-                                            drawInfoList.add(new DrawInfo(faceInfoList.get(i).getRect(), genderInfoList.get(i).getGender(), ageInfoList.get(i).getAge(), faceLivenessInfoList.get(i).getLiveness(), null));
-                                            MessageInfo msgInfo = new MessageInfo();
-                                            msgInfo.setAge(ageInfoList.get(i).getAge());
-                                            msgInfo.setGender(genderInfoList.get(i).getGender());
-                                            msgInfo.setFaceMap(clipFace);
-                                            EventBus.getDefault().post(msgInfo);
-                                        }
-                                        drawHelper.draw(faceRectView, drawInfoList);
-                                    }
-
-
-
-
-
-
-                                    //FaceApi.getInstance().verifyFace(clipFace);
-                                }
-                            };
-                            timer.start();
-                        }
-                    }
-                } else {
-                    return;
+                if(isDetect) {
+                    runDetect(nv21);
                 }
             }
 
             @Override
             public void onCameraClosed() {
-
             }
 
             @Override
@@ -361,6 +284,122 @@ public class PreviewActivity extends SupportActivity implements ViewTreeObserver
         cameraHelper.init();
     }
 
+    /**
+     * 进行人脸检测
+     *
+     * @param nv21
+     */
+    private void runDetect(final byte[] nv21) {
+        if (faceRectView != null) {
+            faceRectView.clearFaceInfo();
+        }
+        final List<FaceInfo> faceInfoList = new ArrayList<>();
+        int code = faceEngine.detectFaces(nv21, previewSize.width, previewSize.height, FaceEngine.CP_PAF_NV21, faceInfoList);
+        isDetect = true;
+        if (code == ErrorInfo.MOK && faceInfoList.size() > 0) {
+            code = faceEngine.process(nv21, previewSize.width, previewSize.height, FaceEngine.CP_PAF_NV21, faceInfoList, processMask);
+            if (code != ErrorInfo.MOK) {
+                //FragmentUtils.replace(bkFragment, advFragment);
+                LogUtils.i("检测不到人脸");
+                if(!status){
+                    CountDownTimer timer = new CountDownTimer(30000, 1000) {
+                        @Override
+                        public void onTick(long millisUntilFinished) {
+
+                        }
+                        @Override
+                        public void onFinish() {
+                            replaceFragment(advFragment,true);
+                            status = true;
+                        }
+                    };
+                    timer.start();
+                }
+                return;
+            }
+            final Rect faceRect = adjustRect(faceInfoList.get(0).getRect(), previewSize.width, previewSize.height, previewView.getWidth(), previewView.getHeight(), mdisplayOrientation, mcameraId, misMirror, false, false);
+
+            DisplayMetrics dm = new DisplayMetrics();
+            getWindowManager().getDefaultDisplay().getMetrics(dm);
+            int screenWidth = dm.widthPixels;
+            int screenHeight = dm.heightPixels;
+            int px = screenWidth / 2;
+            int py = screenHeight/2;
+            if(faceRect.contains(px,py)){
+                if (status) {
+                    status = false;
+                    LogUtils.i("检测到人脸开始操作");
+                    faceOperation(nv21, faceRect);
+                }
+            }
+
+            drawFace(faceInfoList);
+        } else {
+            return;
+        }
+    }
+
+    /**
+     * 画人脸框
+     *
+     * @param faceInfoList
+     */
+    private void drawFace(List<FaceInfo> faceInfoList) {
+        List<AgeInfo> ageInfoList = new ArrayList<>();
+        List<GenderInfo> genderInfoList = new ArrayList<>();
+        List<Face3DAngle> face3DAngleList = new ArrayList<>();
+        List<LivenessInfo> faceLivenessInfoList = new ArrayList<>();
+
+        int ageCode = faceEngine.getAge(ageInfoList);
+        int genderCode = faceEngine.getGender(genderInfoList);
+        int face3DAngleCode = faceEngine.getFace3DAngle(face3DAngleList);
+        int livenessCode = faceEngine.getLiveness(faceLivenessInfoList);
+
+        if ((ageCode | genderCode | face3DAngleCode | livenessCode) != ErrorInfo.MOK) {
+            return;
+        }
+        if (faceRectView != null && drawHelper != null) {
+            List<DrawInfo> drawInfoList = new ArrayList<>();
+            for (int i = 0; i < faceInfoList.size(); i++) {
+                drawInfoList.add(new DrawInfo(faceInfoList.get(i).getRect(), genderInfoList.get(i).getGender(), ageInfoList.get(i).getAge(), faceLivenessInfoList.get(i).getLiveness(), null));
+                MessageInfo msgInfo = new MessageInfo();
+                msgInfo.setAge(ageInfoList.get(i).getAge());
+                msgInfo.setGender(genderInfoList.get(i).getGender());
+                msgInfo.setFaceMap(finalFace);
+                EventBus.getDefault().post(msgInfo);
+            }
+            drawHelper.draw(faceRectView, drawInfoList);
+        }
+    }
+
+    private void faceOperation(final byte[] nv21, final Rect faceRect) {
+        //获取真实人脸位置
+
+        loadRootFragment(R.id.fragmentGroup, bkFragment);
+        CountDownTimer timer = new CountDownTimer(5000, 1000) {
+            @Override
+            public void onTick(long millisUntilFinished) {
+
+            }
+
+            @Override
+            public void onFinish() {
+                NV21ToBitmap nv21ToBitmap = new NV21ToBitmap(PreviewActivity.this);
+                Bitmap face = nv21ToBitmap.nv21ToBitmap(nv21, previewSize.width, previewSize.height);
+                face = ImageUtils.rotate(face, 270, 0, 0);
+                face = convert(face, face.getWidth(), face.getHeight());
+                finalFace = face;
+                try {
+                    finalFace = ImageUtils.clip(face, faceRect.left > 0 ? faceRect.left : 0, faceRect.top > 0 ? faceRect.top : 0, faceRect.width(), faceRect.height());
+                    replaceFragment(fragmentResultBkFragment, true);
+                    //FaceApi.getInstance().verifyFace(finalFace);
+                } catch (Exception e) {
+                }
+            }
+        };
+        timer.start();
+    }
+
     @Override
     public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
@@ -376,7 +415,6 @@ public class PreviewActivity extends SupportActivity implements ViewTreeObserver
             }
         }
     }
-
 
 
     /**
@@ -402,6 +440,7 @@ public class PreviewActivity extends SupportActivity implements ViewTreeObserver
             afCode = faceEngine.unInit();
         }
     }
+
     /**
      * @param ftRect                   FT人脸框
      * @param previewWidth             相机预览的宽度
@@ -513,5 +552,17 @@ public class PreviewActivity extends SupportActivity implements ViewTreeObserver
     @Override
     public void OnBannerClick(int position) {
 
+    }
+
+    Bitmap convert(Bitmap a, int width, int height) {
+        int w = a.getWidth();
+        int h = a.getHeight();
+        Bitmap newb = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888);// 创建一个新的和SRC长度宽度一样的位图
+        Canvas cv = new Canvas(newb);
+        Matrix m = new Matrix();
+        m.postScale(-1, 1);   //镜像水平翻转
+        Bitmap new2 = Bitmap.createBitmap(a, 0, 0, w, h, m, true);
+        cv.drawBitmap(new2, new Rect(0, 0, new2.getWidth(), new2.getHeight()), new Rect(0, 0, width, height), null);
+        return newb;
     }
 }

@@ -11,6 +11,8 @@ import android.widget.ImageButton;
 import android.widget.ImageView;
 
 import com.arcsoft.arcfacedemo.R;
+import com.blankj.utilcode.util.LogUtils;
+import com.jaeger.ninegridimageview.ItemImageClickListener;
 import com.jaeger.ninegridimageview.NineGridImageView;
 import com.jaeger.ninegridimageview.NineGridImageViewAdapter;
 import com.mpt.android.stv.Slice;
@@ -64,7 +66,7 @@ public class ChooseStyleViewFragment extends SupportFragment {
                 .textSize(80)
                 .style(Typeface.BOLD | Typeface.ITALIC)
                 .build());
-        titleChooose.addSlice(new Slice.Builder("\u3000\u3000\u3000\u3000").build());
+        titleChooose.addSlice(new Slice.Builder("\u3000").build());
         titleChooose.addSlice(new Slice.Builder("  3.5/10  ")
                 .textColor(Color.WHITE)
                 .setImageResource(R.mipmap.red_heart)
@@ -79,6 +81,18 @@ public class ChooseStyleViewFragment extends SupportFragment {
         viewList.add("http://www.ixiupet.com/uploads/allimg/170729/110U2AU_0.jpg");
         nineGridImageView.setAdapter(mAdapter);
         nineGridImageView.setImagesData(viewList);
+
+        nineGridImageView.setItemImageClickListener(new ItemImageClickListener() {
+            @Override
+            public void onItemImageClick(Context context, ImageView imageView, int index, List list) {
+                LogUtils.i(list.get(index));
+                WebLayoutViewFragment fragment = new WebLayoutViewFragment();
+                Bundle bundle = new Bundle();
+                bundle.putString("test","hello");
+                fragment.setArguments(bundle);
+                loadRootFragment(R.id.choose_fraglayout,fragment);
+            }
+        });
 
         flushBtn = view.findViewById(R.id.flushBtn);
         flushBtn.setOnClickListener(new View.OnClickListener() {

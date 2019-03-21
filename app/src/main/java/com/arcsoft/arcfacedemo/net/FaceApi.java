@@ -3,6 +3,7 @@ package com.arcsoft.arcfacedemo.net;
 import android.graphics.Bitmap;
 
 import com.alibaba.fastjson.JSONObject;
+import com.arcsoft.arcfacedemo.constants.Auth;
 import com.arcsoft.arcfacedemo.net.json.FaceRespData;
 import com.arcsoft.arcfacedemo.constants.Device;
 import com.arcsoft.arcfacedemo.constants.Url;
@@ -28,6 +29,7 @@ public class FaceApi {
         client = new AsyncHttpClient();
         builder = new GsonBuilder();
         gson = builder.create();
+        client.addHeader("Authorization", Auth.token);
     }
 
     public static FaceApi getInstance() {
@@ -48,7 +50,6 @@ public class FaceApi {
         params.put("deviceId", Device.ID);
         params.put("image", ImageUtil.bitmapToBase64(face));
         params.put("group_id", Device.ID.substring(0, 8));
-
         client.post(Url.IP + "/api/face_search", params, new AsyncHttpResponseHandler() {
             @Override
             public void onSuccess(int statusCode, Header[] headers, byte[] responseBody) {

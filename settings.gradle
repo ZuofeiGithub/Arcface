@@ -1,1 +1,1 @@
-include ':app', ':stv'
+include ':app', ':stv', ':rigger'

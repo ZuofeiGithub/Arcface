@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name">ArcFaceDemo</string>
+    <string name="app_name">人脸识别</string>
     <string name="page_preview">face attributes detect(video)</string>
     <string name="face_recognize_mode">face compare 1:n(video vs database)</string>
     <string name="page_single_image">face attributes detect(image)</string>

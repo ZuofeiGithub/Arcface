@@ -9,6 +9,7 @@ import com.arcsoft.arcfacedemo.R;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.fragment.app.Fragment;
 import me.yokeyword.fragmentation.SupportFragment;
 
 public class BkFragment extends SupportFragment {

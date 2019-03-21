@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
+    <RelativeLayout
+        android:layout_width="match_parent"
+        android:layout_marginTop="100dp"
+        android:layout_height="match_parent">
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginLeft="60dp"
+            android:layout_marginTop="100dp"
+            android:background="@drawable/label_one"
+            android:visibility="gone"
+            android:id="@+id/lablel_one"
+            android:gravity="center"
+            android:text="lodasdasdasg"
+            android:textColor="#ecc68c" />
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginLeft="230dp"
+            android:layout_marginTop="75dp"
+            android:background="@drawable/label_two"
+            android:visibility="gone"
+            android:id="@+id/label_two"
+            android:gravity="center"
+            android:text="lodasdasdasg"
+            android:textColor="#ecc68c" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginLeft="60dp"
+            android:layout_marginTop="10dp"
+            android:background="@drawable/label_three"
+            android:visibility="gone"
+            android:id="@+id/label_three"
+            android:gravity="center"
+            android:text="lodasdasdasg"
+            android:textColor="#ecc68c" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="250dp"
+            android:layout_marginLeft="250dp"
+            android:background="@drawable/label_four"
+            android:visibility="gone"
+            android:id="@+id/label_four"
+            android:gravity="center"
+            android:text="lodasdasdasg"
+            android:textColor="#ecc68c" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="250dp"
+            android:layout_marginLeft="20dp"
+            android:background="@drawable/label_five"
+            android:visibility="gone"
+            android:id="@+id/label_five"
+            android:gravity="center"
+            android:text="lodasdasdasg"
+            android:textColor="#ecc68c" />
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="310dp"
+            android:layout_marginLeft="160dp"
+            android:background="@drawable/label_six"
+            android:visibility="gone"
+            android:id="@+id/label_six"
+            android:gravity="center"
+            android:text="lodasdasdasg"
+            android:textColor="#ecc68c" />
+    </RelativeLayout>
+</RelativeLayout>
