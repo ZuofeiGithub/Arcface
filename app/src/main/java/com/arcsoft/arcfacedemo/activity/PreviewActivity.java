@@ -1,8 +1,13 @@
 package com.arcsoft.arcfacedemo.activity;
 
 import android.Manifest;
+import android.app.AlarmManager;
+import android.app.PendingIntent;
+import android.content.BroadcastReceiver;
 import android.content.ComponentName;
+import android.content.Context;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.content.ServiceConnection;
 import android.content.pm.ActivityInfo;
 import android.content.pm.PackageManager;
@@ -70,7 +75,7 @@ import io.reactivex.disposables.Disposable;
 import io.reactivex.schedulers.Schedulers;
 import me.yokeyword.fragmentation.SupportActivity;
 
-public class PreviewActivity extends SupportActivity implements ViewTreeObserver.OnGlobalLayoutListener, OnBannerListener,ServiceConnection {
+public class PreviewActivity extends SupportActivity implements ViewTreeObserver.OnGlobalLayoutListener, OnBannerListener, ServiceConnection {
     private static final String[] NEEDED_PERMISSIONS = new String[]{Manifest.permission.CAMERA, Manifest.permission.READ_PHONE_STATE};
     private int processMask = FaceEngine.ASF_AGE | FaceEngine.ASF_FACE3DANGLE | FaceEngine.ASF_GENDER | FaceEngine.ASF_LIVENESS;
     private Integer cameraID = Camera.CameraInfo.CAMERA_FACING_FRONT;
@@ -98,6 +103,7 @@ public class PreviewActivity extends SupportActivity implements ViewTreeObserver
 
     private boolean status = true;
     private boolean isDetect = true;
+    private boolean noface = true;
 
     private FaceDetectService.Binder faceBinder;
 
@@ -111,6 +117,9 @@ public class PreviewActivity extends SupportActivity implements ViewTreeObserver
     List<Face3DAngle> face3DAngleList;
     List<LivenessInfo> faceLivenessInfoList;
 
+    private AlarmManager alarmManager;
+    private PendingIntent pendingIntent;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -121,7 +130,31 @@ public class PreviewActivity extends SupportActivity implements ViewTreeObserver
         //serviceIntent.putExtra("key",111);
 //        startService(serviceIntent);
         cameraInfo = new CameraInfo();
-       // bindService(serviceIntent,this,BIND_AUTO_CREATE);
+        startTimer();
+        // bindService(serviceIntent,this,BIND_AUTO_CREATE);
+    }
+
+
+    private void startTimer() {
+        alarmManager = (AlarmManager)this.getSystemService(ALARM_SERVICE);
+        Intent intent = new Intent();
+        intent.setAction("action.REFRESHTEXTVIEW");
+        pendingIntent = PendingIntent.getBroadcast(this,
+                100, intent, PendingIntent.FLAG_CANCEL_CURRENT);
+        alarmManager.setRepeating(AlarmManager.RTC_WAKEUP,
+                5000, 60000, pendingIntent);
+        IntentFilter intentFilter = new IntentFilter();
+        intentFilter.addAction("action.REFRESHTEXTVIEW");
+        BroadcastReceiver receiver = new AlarmBroadcastReceiver();
+        registerReceiver(receiver,intentFilter);
+    }
+
+    private class AlarmBroadcastReceiver extends BroadcastReceiver{
+
+        @Override
+        public void onReceive(Context context, Intent intent) {
+//            alarmManager.cancel(pendingIntent);
+        }
     }
 
     private void initView() {
@@ -154,7 +187,7 @@ public class PreviewActivity extends SupportActivity implements ViewTreeObserver
             initEngine(); //初始化人脸识别引擎
             initCamera(); //初始化相机
             //初始化广告页
-             loadRootFragment(R.id.fragmentGroup, advFragment);
+            loadRootFragment(R.id.fragmentGroup, advFragment);
         }
     }
 
@@ -273,14 +306,7 @@ public class PreviewActivity extends SupportActivity implements ViewTreeObserver
 
             @Override
             public void onPreview(final byte[] nv21, Camera camera) {
-                    runDetect(nv21);
-//                if(faceBinder != null){
-//                    cameraInfo.setNv21(nv21);
-//                    cameraInfo.setWidth(previewView.getWidth());
-//                    cameraInfo.setHeight(previewView.getHeight());
-//                    cameraInfo.setFaceEngine(faceEngine);
-//                    faceBinder.setData(cameraInfo);
-//                }
+                runDetect(nv21);
             }
 
             @Override
@@ -319,27 +345,33 @@ public class PreviewActivity extends SupportActivity implements ViewTreeObserver
         if (faceRectView != null) {
             faceRectView.clearFaceInfo();
         }
+        LogUtils.i("检测中");
+        if (noface) {
+            noface = false;
+            if (timer == null) {
+                timer = new CountDownTimer(30000, 1000) {
+                    @Override
+                    public void onFinish() {
+                        replaceFragment(advFragment, true);
+                        status = true;
+                    }
+                };
+            }
+            timer.start();
+        }
         final List<FaceInfo> faceInfoList = new ArrayList<>();
         int code = faceEngine.detectFaces(nv21, previewSize.width, previewSize.height, FaceEngine.CP_PAF_NV21, faceInfoList);
         if (code == ErrorInfo.MOK && faceInfoList.size() > 0) {
             code = faceEngine.process(nv21, previewSize.width, previewSize.height, FaceEngine.CP_PAF_NV21, faceInfoList, processMask);
             if (code != ErrorInfo.MOK) {
                 //FragmentUtils.replace(bkFragment, advFragment);
-                //LogUtils.i("检测不到人脸");
-                if(!status){
-                    if(timer == null) {
-                        timer = new CountDownTimer(30000, 1000) {
-                            @Override
-                            public void onFinish() {
-                                replaceFragment(advFragment, true);
-                                status = true;
-                            }
-                        };
-                    }
-                    timer.start();
-                }
+                LogUtils.i(status);
+
                 return;
             }
+            if (!noface)
+                noface = true;
+            LogUtils.i("检测到人脸");
             final Rect faceRect = adjustRect(faceInfoList.get(0).getRect(), previewSize.width, previewSize.height, previewView.getWidth(), previewView.getHeight(), mdisplayOrientation, mcameraId, misMirror, false, false);
 
             DisplayMetrics dm = new DisplayMetrics();
@@ -347,8 +379,8 @@ public class PreviewActivity extends SupportActivity implements ViewTreeObserver
             int screenWidth = dm.widthPixels;
             int screenHeight = dm.heightPixels;
             int px = screenWidth / 2;
-            int py = screenHeight/2;
-            if(faceRect.contains(px,py)){
+            int py = screenHeight / 2;
+            if (faceRect.contains(px, py)) {
                 if (status) {
                     status = false;
                     //LogUtils.i("检测到人脸开始操作");
@@ -401,7 +433,7 @@ public class PreviewActivity extends SupportActivity implements ViewTreeObserver
         face = ImageUtils.rotate(face, 270, 0, 0);
         face = convert(face, face.getWidth(), face.getHeight());
         finalFace = face;
-        if(operatimer == null) {
+        if (operatimer == null) {
             operatimer = new CountDownTimer(5000, 1000) {
                 @Override
                 public void onTick(long millisUntilFinished) {
@@ -595,7 +627,7 @@ public class PreviewActivity extends SupportActivity implements ViewTreeObserver
 
     @Override
     public void onServiceConnected(ComponentName name, IBinder service) {
-            faceBinder = (FaceDetectService.Binder) service;
+        faceBinder = (FaceDetectService.Binder) service;
     }
 
     @Override

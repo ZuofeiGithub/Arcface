@@ -69,9 +69,6 @@ public class LabelFragmentFragment extends SupportFragment {
         femaleStrList.add("亭亭玉立");
         femaleStrList.add("婀娜多姿");
         femaleStrList.add("妍姿艳质");
-
-        LogUtils.i(mMsgInfo);
-
         //清新俊逸、仪表堂堂、仪表不凡、英俊潇洒、高大威猛
         textViewList = new ArrayList<>();
         textViewList.add(lablelOne);

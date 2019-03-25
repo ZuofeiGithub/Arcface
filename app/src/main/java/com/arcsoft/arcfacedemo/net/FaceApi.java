@@ -2,11 +2,15 @@ package com.arcsoft.arcfacedemo.net;
 
 import android.graphics.Bitmap;
 
+import com.alibaba.fastjson.JSON;
+import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
 import com.arcsoft.arcfacedemo.constants.Auth;
+import com.arcsoft.arcfacedemo.model.Banner;
 import com.arcsoft.arcfacedemo.net.json.FaceRespData;
 import com.arcsoft.arcfacedemo.constants.Device;
 import com.arcsoft.arcfacedemo.constants.Url;
+import com.arcsoft.arcfacedemo.util.ACache;
 import com.arcsoft.arcfacedemo.util.ImageUtil;
 import com.blankj.utilcode.util.LogUtils;
 import com.blankj.utilcode.util.ToastUtils;
@@ -16,20 +20,20 @@ import com.loopj.android.http.AsyncHttpClient;
 import com.loopj.android.http.AsyncHttpResponseHandler;
 import com.loopj.android.http.RequestParams;
 
+import java.util.List;
+
 import cz.msebera.android.httpclient.Header;
 
 public class FaceApi {
 
     private Gson gson;
     private GsonBuilder builder;
-
     private static  FaceApi instance = null;
     private  AsyncHttpClient client;
     private FaceApi(){
         client = new AsyncHttpClient();
         builder = new GsonBuilder();
         gson = builder.create();
-        client.addHeader("Authorization", Auth.token);
     }
 
     public static FaceApi getInstance() {
@@ -131,6 +135,45 @@ public class FaceApi {
             @Override
             public void onFailure(int statusCode, Header[] headers, byte[] responseBody, Throwable error) {
                 LogUtils.i("失败:"+"错误码:"+statusCode+" 消息:"+error.getMessage());
+            }
+        });
+    }
+
+    public void getToken(String username, String password, final ITokenCallBack tokenCallBack){
+        RequestParams params = new RequestParams();
+        params.put("username",username);
+        params.put("password",password);
+        client.post(Url.IP + "/api/auth", params, new AsyncHttpResponseHandler() {
+            @Override
+            public void onSuccess(int statusCode, Header[] headers, byte[] responseBody) {
+                JSONObject jsonObject = JSONObject.parseObject(new String(responseBody));
+                final String access_token = jsonObject.getString("token");
+                tokenCallBack.accessToken(access_token);
+            }
+
+            @Override
+            public void onFailure(int statusCode, Header[] headers, byte[] responseBody, Throwable error) {
+
+            }
+        });
+    }
+
+    public void getBanners(String token, final IBannerCallBack bannerCallBack){
+        StringBuilder stringBuilder = new StringBuilder();
+        stringBuilder.append("Bearer ");
+        stringBuilder.append(token);
+        client.addHeader("Authorization", stringBuilder.toString());
+        client.get(Url.IP + "/api/bannerlist", null, new AsyncHttpResponseHandler() {
+            @Override
+            public void onSuccess(int statusCode, Header[] headers, byte[] responseBody) {
+                JSONArray jsonArray = JSONArray.parseArray(new String(responseBody));
+                List<Banner> bannerList = JSON.parseArray(jsonArray.toJSONString(),Banner.class);
+                bannerCallBack.banner(bannerList);
+            }
+
+            @Override
+            public void onFailure(int statusCode, Header[] headers, byte[] responseBody, Throwable error) {
+
             }
         });
     }
