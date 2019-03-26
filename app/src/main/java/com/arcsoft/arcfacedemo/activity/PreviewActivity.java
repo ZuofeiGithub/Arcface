@@ -138,13 +138,13 @@ public class PreviewActivity extends SupportActivity implements ViewTreeObserver
     private void startTimer() {
         alarmManager = (AlarmManager)this.getSystemService(ALARM_SERVICE);
         Intent intent = new Intent();
-        intent.setAction("action.REFRESHTEXTVIEW");
+        intent.setAction("action.PREVIEW");
         pendingIntent = PendingIntent.getBroadcast(this,
                 100, intent, PendingIntent.FLAG_CANCEL_CURRENT);
         alarmManager.setRepeating(AlarmManager.RTC_WAKEUP,
                 5000, 60000, pendingIntent);
         IntentFilter intentFilter = new IntentFilter();
-        intentFilter.addAction("action.REFRESHTEXTVIEW");
+        intentFilter.addAction("action.PREVIEW");
         BroadcastReceiver receiver = new AlarmBroadcastReceiver();
         registerReceiver(receiver,intentFilter);
     }
@@ -154,6 +154,7 @@ public class PreviewActivity extends SupportActivity implements ViewTreeObserver
         @Override
         public void onReceive(Context context, Intent intent) {
 //            alarmManager.cancel(pendingIntent);
+            LogUtils.i("Pre定时器");
         }
     }
 
@@ -345,7 +346,6 @@ public class PreviewActivity extends SupportActivity implements ViewTreeObserver
         if (faceRectView != null) {
             faceRectView.clearFaceInfo();
         }
-        LogUtils.i("检测中");
         if (noface) {
             noface = false;
             if (timer == null) {
